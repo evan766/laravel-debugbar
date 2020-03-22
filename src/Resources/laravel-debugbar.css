@@ -213,6 +213,10 @@ ul.phpdebugbar-widgets-list li.phpdebugbar-widgets-list-item {
     flex-wrap: wrap;
 }
 
+ul.phpdebugbar-widgets-list li.phpdebugbar-widgets-list-item div {
+   line-height: 25px;
+}
+
 .phpdebugbar-widgets-sql.phpdebugbar-widgets-name {
     font-weight: bold;
 }
@@ -245,6 +249,10 @@ ul.phpdebugbar-widgets-list li.phpdebugbar-widgets-list-item .phpdebugbar-widget
     flex: 1 1 auto;
     margin: 10px 100% 10px 0;
     max-width: 100%;
+}
+
+.phpdebugbar-widgets-filename:hover {
+    background: #dddddd;
 }
 
 ul.phpdebugbar-widgets-list li.phpdebugbar-widgets-list-item:nth-child(even) {

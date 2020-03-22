@@ -15,6 +15,19 @@ class FilesystemStorage implements StorageInterface
     protected $files;
     protected $gc_lifetime = 24;     // Hours to keep collected data;
     protected $gc_probability = 5;   // Probability of GC being run on a save request. (5/100)
+    
+    /**
+     * filter key when find request json
+     * @var array
+     */
+    protected $specialFilterKeys = [
+        'is_has_exception'    => 'is_has_exception',
+        'sql'                 => 'sql',
+        'req_start_date_time' => 'req_start_date_time',
+        'req_end_date_time'   => 'req_end_date_time',
+        'uri'                 => 'uri',
+        'status_code'         => 'status_code',
+    ];
 
     /**
      * @param \Illuminate\Filesystem\Filesystem $files The filesystem
@@ -102,8 +115,7 @@ class FilesystemStorage implements StorageInterface
             }
             $data = json_decode($file->getContents(), true);
             $meta = $data['__meta'];
-            unset($data);
-            if ($this->filter($meta, $filters)) {
+            if ($this->filter($data, $filters)) {
                 $results[] = $meta;
             }
             if (count($results) >= ($max + $offset)) {
@@ -116,17 +128,68 @@ class FilesystemStorage implements StorageInterface
     /**
      * Filter the metadata for matches.
      *
-     * @param $meta
+     * @param $data
      * @param $filters
      * @return bool
      */
-    protected function filter($meta, $filters)
+    protected function filter($data, $filters)
     {
+        $meta        = $data['__meta'];
+        $requestTime = strtotime($meta['datetime']); //eg: 2020-03-22 14:04:44  to timestamp
         foreach ($filters as $key => $value) {
-            if (!isset($meta[$key]) || fnmatch($value, $meta[$key]) === false) {
-                return false;
+            $value = trim($value);
+            if (in_array($key, $this->specialFilterKeys)) {
+                if ($key == $this->specialFilterKeys['is_has_exception'] && $value==1 && $data['exceptions']['count'] <= 0) {
+                    return false;
+                } elseif ($key == $this->specialFilterKeys['req_start_date_time'] && $requestTime < strtotime($value)) {
+                    return false;
+                } elseif ($key == $this->specialFilterKeys['req_end_date_time'] && $requestTime > strtotime($value)) {
+                    return false;
+                } elseif($key == $this->specialFilterKeys['uri'] && !preg_match("/{$value}/", $meta['uri'])) {
+                    return false;
+                } elseif ($key == $this->specialFilterKeys['status_code'] && !preg_match("/>($value)</", $data['request']['status_code'])) {
+                    return false;
+                } elseif ($key == $this->specialFilterKeys['sql']) {
+                    $sqlStatements = $data['queries']['statements'];
+                    if (empty($sqlStatements)) {
+                        return false;
+                    }
+                    
+                    $isMatch    = false;
+                    foreach ($sqlStatements as $sqlStatement) {
+                        $matchCount   = 0;
+                        $regex        = explode('&', $value);
+                        $keywordCount = count($regex);
+                        if ($keywordCount == 1) {
+                            if (preg_match('/'.$value.'/', $sqlStatement['sql'])) {
+                                $isMatch = true;
+                                break;
+                            }
+                        } else {
+                            foreach ($regex as $reg) {
+                                if (preg_match('/'.$reg.'/', $sqlStatement['sql'])) {
+                                    $matchCount++;
+                                }
+                            }
+                            if ($matchCount >= $keywordCount) {
+                                $isMatch = true;
+                                 break;
+                            }
+                        }
+                    }
+                    
+                    if (! $isMatch) {
+                        return false;
+                    }
+                }
+                
+            } else {
+                if (!isset($meta[$key]) || fnmatch($value, $meta[$key]) === false) {
+                    return false;
+                }
             }
         }
+        
         return true;
     }
 
