@@ -1,12 +1,12 @@
 {
-    "name": "barryvdh/laravel-debugbar",
-    "description": "PHP Debugbar integration for Laravel",
+    "name": "evan766/laravel-debugbar",
+    "description": "PHP Debugbar integration for Laravel. fork from Barryvdh and modify some css style and add some filter options for request url list",
     "keywords": ["laravel", "debugbar", "profiler", "debug", "webprofiler"],
     "license": "MIT",
     "authors": [
         {
-            "name": "Barry vd. Heuvel",
-            "email": "barryvdh@gmail.com"
+            "name": "Evan Woo",
+            "email": "evan766@foxmail.com"
         }
     ],
     "require": {
